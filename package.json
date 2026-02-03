@@ -1,0 +1,32 @@
+{
+	"name": "bx-cli",
+	"version": "0.1.0",
+	"description": "BabelX CLI - Tool for translation and i18n management",
+	"module": "index.ts",
+	"type": "module",
+	"bin": {
+		"bx": "./dist/index.js"
+	},
+	"private": true,
+	"devDependencies": {
+		"@biomejs/biome": "^2.3.14",
+		"@types/bun": "latest"
+	},
+	"peerDependencies": {
+		"typescript": "^5.9.3"
+	},
+	"dependencies": {
+		"axios": "^1.13.4",
+		"chalk": "^5.6.2",
+		"commander": "^14.0.3",
+		"dotenv": "^17.2.3",
+		"ora": "^9.1.0",
+		"zod": "^4.3.6"
+	},
+	"scripts": {
+		"dev": "bun run index.ts",
+		"build": "bun build index.ts --outdir dist --target bun",
+		"lint:check": "bunx biome check --write --error-on-warnings && bunx tsc --noEmit",
+		"lint:fix": "biome check --write ."
+	}
+}
