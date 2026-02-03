@@ -1,3 +1,5 @@
+import { existsSync, readFileSync, writeFileSync } from "node:fs";
+import { join } from "node:path";
 import { Command } from "commander";
 import { BabelXApi } from "../services/api.js";
 import { log, spinner } from "../utils/logger.js";
@@ -23,18 +25,12 @@ export const loginCommand = new Command("login")
 				log.info(`API URL: ${options.url}`);
 
 				// Save to .babelx.json if it exists
-				const fs = require("node:fs");
-				const path = require("node:path");
-				const configPath = path.join(process.cwd(), ".babelx.json");
+				const configPath = join(process.cwd(), ".babelx.json");
 
-				if (fs.existsSync(configPath)) {
-					const config = JSON.parse(fs.readFileSync(configPath, "utf-8"));
+				if (existsSync(configPath)) {
+					const config = JSON.parse(readFileSync(configPath, "utf-8"));
 					config.apiKey = apiKey;
-					fs.writeFileSync(
-						configPath,
-						JSON.stringify(config, null, 2),
-						"utf-8",
-					);
+					writeFileSync(configPath, JSON.stringify(config, null, 2), "utf-8");
 					log.success("API key saved to .babelx.json");
 				} else {
 					log.warn("No .babelx.json found in current directory");

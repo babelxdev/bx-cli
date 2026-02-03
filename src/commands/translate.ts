@@ -1,4 +1,11 @@
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import {
+	existsSync,
+	mkdirSync,
+	readdirSync,
+	readFileSync,
+	statSync,
+	writeFileSync,
+} from "node:fs";
 import { dirname, join } from "node:path";
 import { Command } from "commander";
 import { loadConfig, requireApiKey } from "../config/index.js";
@@ -39,7 +46,7 @@ export const translateCommand = new Command("translate")
 				return;
 			}
 
-			const stats = require("node:fs").statSync(inputPath);
+			const stats = statSync(inputPath);
 			const isDirectory = stats.isDirectory();
 
 			if (isDirectory) {
@@ -143,8 +150,7 @@ async function translateDirectory(
 	api: BabelXApi,
 	outputPath?: string,
 ): Promise<void> {
-	const fs = require("node:fs");
-	const files = fs.readdirSync(dirPath);
+	const files = readdirSync(dirPath);
 	const i18nFiles = files.filter((f: string) => f.endsWith(".json"));
 
 	if (i18nFiles.length === 0) {

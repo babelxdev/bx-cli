@@ -1,14 +1,10 @@
-import { existsSync } from "node:fs";
+import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import dotenv from "dotenv";
 import { z } from "zod";
-
-// Load environment variables
-dotenv.config();
 
 // Configuration schema
 const ConfigSchema = z.object({
-	apiUrl: z.string().url().default("http://localhost:3001"),
+	apiUrl: z.url().default("http://localhost:3001"),
 	apiKey: z.string().optional(),
 	projectId: z.string().optional(),
 	sourceLanguage: z.string().default("en"),
@@ -62,8 +58,7 @@ export function loadProjectConfig(): BabelXProjectConfig | null {
 	}
 
 	try {
-		// eslint-disable-next-line @typescript-eslint/no-require-imports
-		const config = require(configPath);
+		const config = JSON.parse(readFileSync(configPath, "utf-8"));
 		return BabelXProjectConfigSchema.parse(config);
 	} catch {
 		return null;
@@ -71,9 +66,8 @@ export function loadProjectConfig(): BabelXProjectConfig | null {
 }
 
 export function saveProjectConfig(config: BabelXProjectConfig): void {
-	const fs = require("node:fs");
 	const configPath = join(process.cwd(), ".babelx.json");
-	fs.writeFileSync(configPath, JSON.stringify(config, null, 2), "utf-8");
+	writeFileSync(configPath, JSON.stringify(config, null, 2), "utf-8");
 }
 
 export function hasProjectConfig(): boolean {

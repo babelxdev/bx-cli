@@ -1,3 +1,5 @@
+import { existsSync, readFileSync, writeFileSync } from "node:fs";
+import { join } from "node:path";
 import { Command } from "commander";
 import { requireApiKey } from "../config/index.js";
 import { BabelXApi } from "../services/api.js";
@@ -86,16 +88,14 @@ projectsCommand
 			log.info(`Target Languages: ${targetLanguages.join(", ")}`);
 
 			// Update .babelx.json if exists
-			const fs = require("node:fs");
-			const path = require("node:path");
-			const configPath = path.join(process.cwd(), ".babelx.json");
+			const configPath = join(process.cwd(), ".babelx.json");
 
-			if (fs.existsSync(configPath)) {
-				const config = JSON.parse(fs.readFileSync(configPath, "utf-8"));
+			if (existsSync(configPath)) {
+				const config = JSON.parse(readFileSync(configPath, "utf-8"));
 				config.projectId = project.id;
 				config.sourceLanguage = options.source;
 				config.targetLanguages = targetLanguages;
-				fs.writeFileSync(configPath, JSON.stringify(config, null, 2), "utf-8");
+				writeFileSync(configPath, JSON.stringify(config, null, 2), "utf-8");
 				log.success("Project configuration saved to .babelx.json");
 			}
 		} catch (error) {
