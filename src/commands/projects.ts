@@ -1,4 +1,4 @@
-import { existsSync, readFileSync, writeFileSync } from "node:fs";
+import { existsSync } from "node:fs";
 import { join } from "node:path";
 import { Command } from "commander";
 import { requireApiKey } from "../config/index.js";
@@ -14,7 +14,7 @@ projectsCommand
 	.description("List all projects")
 	.action(async () => {
 		try {
-			requireApiKey();
+			await requireApiKey();
 		} catch (error) {
 			log.error(error instanceof Error ? error.message : "Unknown error");
 			return;
@@ -24,7 +24,7 @@ projectsCommand
 		spin.start();
 
 		try {
-			const api = new BabelXApi();
+			const api = await BabelXApi.create();
 			const projects = await api.getProjects();
 
 			spin.succeed("Projects fetched successfully");
@@ -59,7 +59,7 @@ projectsCommand
 	.option("-t, --target <langs>", "Target languages (comma-separated)", "pt-BR")
 	.action(async (name, options) => {
 		try {
-			requireApiKey();
+			await requireApiKey();
 		} catch (error) {
 			log.error(error instanceof Error ? error.message : "Unknown error");
 			return;
@@ -73,7 +73,7 @@ projectsCommand
 		spin.start();
 
 		try {
-			const api = new BabelXApi();
+			const api = await BabelXApi.create();
 			const project = await api.createProject(
 				name,
 				options.source,
@@ -91,11 +91,11 @@ projectsCommand
 			const configPath = join(process.cwd(), ".babelx.json");
 
 			if (existsSync(configPath)) {
-				const config = JSON.parse(readFileSync(configPath, "utf-8"));
+				const config = await Bun.file(configPath).json();
 				config.projectId = project.id;
 				config.sourceLanguage = options.source;
 				config.targetLanguages = targetLanguages;
-				writeFileSync(configPath, JSON.stringify(config, null, 2), "utf-8");
+				await Bun.write(configPath, JSON.stringify(config, null, 2));
 				log.success("Project configuration saved to .babelx.json");
 			}
 		} catch (error) {
@@ -113,7 +113,7 @@ projectsCommand
 	.option("-y, --yes", "Skip confirmation")
 	.action(async (projectId, options) => {
 		try {
-			requireApiKey();
+			await requireApiKey();
 		} catch (error) {
 			log.error(error instanceof Error ? error.message : "Unknown error");
 			return;
@@ -128,7 +128,7 @@ projectsCommand
 		spin.start();
 
 		try {
-			const api = new BabelXApi();
+			const api = await BabelXApi.create();
 			await api.deleteProject(projectId);
 
 			spin.succeed("Project deleted successfully");

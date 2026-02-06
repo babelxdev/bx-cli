@@ -1,6 +1,0 @@
-{
-	"sourceLanguage": "en",
-	"targetLanguages": ["pt-BR"],
-	"i18nFormat": "json",
-	"i18nPath": "./locales"
-}

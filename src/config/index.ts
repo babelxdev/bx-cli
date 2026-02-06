@@ -1,16 +1,23 @@
-import { existsSync, readFileSync, writeFileSync } from "node:fs";
+import { existsSync } from "node:fs";
 import { join } from "node:path";
 import { z } from "zod";
 
+// Config structure type (includes "auto" for detection)
+export type ConfigStructure = "directory" | "file" | "suffix" | "auto";
+
+// Re-export I18nStructure from structure-detector
+export type { I18nStructure } from "../utils/structure-detector.js";
+
 // Configuration schema
 const ConfigSchema = z.object({
-	apiUrl: z.url().default("http://localhost:3001"),
+	apiUrl: z.url().default("https://api.babelx.dev"),
 	apiKey: z.string().optional(),
 	projectId: z.string().optional(),
 	sourceLanguage: z.string().default("en"),
 	targetLanguages: z.array(z.string()).default(["pt-BR"]),
 	i18nFormat: z.enum(["json", "yaml", "po"]).default("json"),
 	i18nPath: z.string().default("./locales"),
+	structure: z.enum(["directory", "file", "suffix", "auto"]).default("auto"),
 });
 
 export type Config = z.infer<typeof ConfigSchema>;
@@ -22,12 +29,13 @@ const BabelXProjectConfigSchema = z.object({
 	targetLanguages: z.array(z.string()).default(["pt-BR"]),
 	i18nFormat: z.enum(["json", "yaml", "po"]).default("json"),
 	i18nPath: z.string().default("./locales"),
+	structure: z.enum(["directory", "file", "suffix", "auto"]).default("auto"),
 	apiKey: z.string().optional(),
 });
 
 export type BabelXProjectConfig = z.infer<typeof BabelXProjectConfigSchema>;
 
-export function loadConfig(): Config {
+export async function loadConfig(): Promise<Config> {
 	const env = {
 		apiUrl: process.env.BABELX_API_URL,
 		apiKey: process.env.BABELX_API_KEY,
@@ -39,7 +47,7 @@ export function loadConfig(): Config {
 	};
 
 	// Load project config if exists
-	const projectConfig = loadProjectConfig();
+	const projectConfig = await loadProjectConfig();
 	if (projectConfig) {
 		return ConfigSchema.parse({
 			...env,
@@ -50,7 +58,7 @@ export function loadConfig(): Config {
 	return ConfigSchema.parse(env);
 }
 
-export function loadProjectConfig(): BabelXProjectConfig | null {
+export async function loadProjectConfig(): Promise<BabelXProjectConfig | null> {
 	const configPath = join(process.cwd(), ".babelx.json");
 
 	if (!existsSync(configPath)) {
@@ -58,24 +66,26 @@ export function loadProjectConfig(): BabelXProjectConfig | null {
 	}
 
 	try {
-		const config = JSON.parse(readFileSync(configPath, "utf-8"));
+		const config = await Bun.file(configPath).json();
 		return BabelXProjectConfigSchema.parse(config);
 	} catch {
 		return null;
 	}
 }
 
-export function saveProjectConfig(config: BabelXProjectConfig): void {
+export async function saveProjectConfig(
+	config: BabelXProjectConfig,
+): Promise<void> {
 	const configPath = join(process.cwd(), ".babelx.json");
-	writeFileSync(configPath, JSON.stringify(config, null, 2), "utf-8");
+	await Bun.write(configPath, JSON.stringify(config, null, 2));
 }
 
 export function hasProjectConfig(): boolean {
 	return existsSync(join(process.cwd(), ".babelx.json"));
 }
 
-export function requireApiKey(): string {
-	const config = loadConfig();
+export async function requireApiKey(): Promise<string> {
+	const config = await loadConfig();
 	if (!config.apiKey) {
 		throw new Error(
 			"API key not found. Please run `bx login` or set BABELX_API_KEY environment variable.",

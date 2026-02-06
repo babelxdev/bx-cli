@@ -8,7 +8,7 @@ export const languagesCommand = new Command("languages")
 	.option("--search <query>", "Filter languages by name or code")
 	.action(async (options) => {
 		try {
-			requireApiKey();
+			await requireApiKey();
 		} catch (error) {
 			log.error(error instanceof Error ? error.message : "Unknown error");
 			return;
@@ -18,7 +18,7 @@ export const languagesCommand = new Command("languages")
 		spin.start();
 
 		try {
-			const api = new BabelXApi();
+			const api = await BabelXApi.create();
 			const languages = await api.getLanguages();
 
 			spin.succeed("Languages fetched successfully");

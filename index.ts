@@ -1,9 +1,11 @@
 #!/usr/bin/env bun
 import { Command } from "commander";
+import { cacheCommand } from "./src/commands/cache.js";
 import { initCommand } from "./src/commands/init.js";
 import { languagesCommand } from "./src/commands/languages.js";
 import { loginCommand } from "./src/commands/login.js";
 import { projectsCommand } from "./src/commands/projects.js";
+import { syncCommand } from "./src/commands/sync.js";
 import { translateCommand } from "./src/commands/translate.js";
 
 const pkg = await import("./package.json", { with: { type: "json" } });
@@ -20,7 +22,9 @@ program
 program.addCommand(initCommand);
 program.addCommand(loginCommand);
 program.addCommand(translateCommand);
+program.addCommand(syncCommand);
 program.addCommand(languagesCommand);
 program.addCommand(projectsCommand);
+program.addCommand(cacheCommand);
 
 program.parse();

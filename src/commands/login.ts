@@ -1,4 +1,4 @@
-import { existsSync, readFileSync, writeFileSync } from "node:fs";
+import { existsSync } from "node:fs";
 import { join } from "node:path";
 import { Command } from "commander";
 import { BabelXApi } from "../services/api.js";
@@ -7,13 +7,13 @@ import { log, spinner } from "../utils/logger.js";
 export const loginCommand = new Command("login")
 	.description("Authenticate with BabelX API")
 	.argument("<apiKey>", "Your BabelX API key")
-	.option("-u, --url <url>", "API URL", "http://localhost:3001")
+	.option("-u, --url <url>", "API URL", "https://api.babelx.dev")
 	.action(async (apiKey, options) => {
 		const spin = spinner("Validating API key...");
 		spin.start();
 
 		try {
-			const api = new BabelXApi();
+			const api = new BabelXApi({ apiUrl: options.url });
 			api.setApiKey(apiKey);
 
 			const isValid = await api.validateApiKey();
@@ -28,9 +28,9 @@ export const loginCommand = new Command("login")
 				const configPath = join(process.cwd(), ".babelx.json");
 
 				if (existsSync(configPath)) {
-					const config = JSON.parse(readFileSync(configPath, "utf-8"));
+					const config = await Bun.file(configPath).json();
 					config.apiKey = apiKey;
-					writeFileSync(configPath, JSON.stringify(config, null, 2), "utf-8");
+					await Bun.write(configPath, JSON.stringify(config, null, 2));
 					log.success("API key saved to .babelx.json");
 				} else {
 					log.warn("No .babelx.json found in current directory");
