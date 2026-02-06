@@ -1,13 +1,37 @@
 {
-	"name": "bx-cli",
+	"name": "@babelx/cli",
 	"version": "0.1.0",
-	"description": "BabelX CLI - Tool for translation and i18n management",
+	"description": "BabelX CLI - AI-powered translation and i18n management tool",
 	"module": "index.ts",
 	"type": "module",
+	"license": "Apache-2.0",
+	"author": "BabelX Team",
+	"homepage": "https://babelx.dev",
+	"repository": {
+		"type": "git",
+		"url": "https://github.com/babelxdev/bx-cli.git"
+	},
+	"keywords": [
+		"i18n",
+		"translation",
+		"cli",
+		"babelx",
+		"ai-translation",
+		"internationalization",
+		"localization"
+	],
 	"bin": {
 		"bx": "./dist/index.js"
 	},
-	"private": true,
+	"files": [
+		"dist/",
+		"LICENSE",
+		"README.md"
+	],
+	"engines": {
+		"bun": ">=1.0.0",
+		"node": ">=18.0.0"
+	},
 	"devDependencies": {
 		"@biomejs/biome": "^2.3.14",
 		"@types/bun": "latest"
