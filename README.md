@@ -202,4 +202,4 @@ bx cache stats
 
 ## License
 
-MIT © BabelX
+Apache 2.0 © BabelX
