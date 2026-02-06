@@ -3,6 +3,7 @@ import { Command } from "commander";
 import { cacheCommand } from "./src/commands/cache.js";
 import { initCommand } from "./src/commands/init.js";
 import { languagesCommand } from "./src/commands/languages.js";
+import { lockfileCommand } from "./src/commands/lockfile.js";
 import { loginCommand } from "./src/commands/login.js";
 import { projectsCommand } from "./src/commands/projects.js";
 import { syncCommand } from "./src/commands/sync.js";
@@ -26,5 +27,6 @@ program.addCommand(syncCommand);
 program.addCommand(languagesCommand);
 program.addCommand(projectsCommand);
 program.addCommand(cacheCommand);
+program.addCommand(lockfileCommand);
 
 program.parse();
