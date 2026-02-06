@@ -88,7 +88,11 @@ export class BabelXApi {
 		// Batch endpoint not available, translate one by one
 		const results: Array<{ key: string; translatedText: string }> = [];
 		for (const item of items) {
-			const result = await this.translate(item.text, targetLanguage, sourceLanguage);
+			const result = await this.translate(
+				item.text,
+				targetLanguage,
+				sourceLanguage,
+			);
 			results.push({
 				key: item.key,
 				translatedText: result.translatedText,

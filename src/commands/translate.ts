@@ -135,7 +135,11 @@ export const translateCommand = new Command("translate")
 
 		// Process each target language
 		const api = await BabelXApi.create();
-		api.setApiKey(config.apiKey!);
+		if (!config.apiKey) {
+			log.error("API key not configured. Run 'bx login' first.");
+			return;
+		}
+		api.setApiKey(config.apiKey);
 
 		for (const targetLang of targetLangs) {
 			log.info(`\n🌐 Translating to ${targetLang}...`);

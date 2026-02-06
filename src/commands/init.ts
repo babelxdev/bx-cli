@@ -2,7 +2,6 @@
  * Initialize BabelX in your project with auto-detection
  */
 
-import { relative } from "node:path";
 import { Command } from "commander";
 import {
 	type BabelXProjectConfig,
