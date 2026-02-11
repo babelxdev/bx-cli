@@ -1,17 +1,20 @@
 #!/usr/bin/env node
 /**
- * BabelX CLI - Binary wrapper
- * Detects platform and runs the appropriate binary
+ * BabelX CLI - Binary wrapper with lazy download
+ * Downloads the appropriate binary on first run
  */
 
 import { spawn } from "node:child_process";
-import { existsSync } from "node:fs";
+import { createWriteStream, existsSync, mkdirSync } from "node:fs";
 import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 import { platform as getPlatformName, arch as getArch } from "node:os";
+import { get } from "node:https";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
+
+const GITHUB_REPO = "babelxdev/bx-cli";
 
 function getPlatform() {
 	const platform = getPlatformName();
@@ -32,33 +35,95 @@ function getPlatform() {
 	const a = archMap[arch];
 
 	if (!p || !a) {
-		console.error(`Unsupported platform: ${platform} ${arch}`);
+		console.error(`❌ Unsupported platform: ${platform} ${arch}`);
 		process.exit(1);
 	}
 
 	return `${p}-${a}`;
 }
 
+function getBinaryName() {
+	return process.platform === "win32" ? "bx.exe" : "bx";
+}
+
 function getBinaryPath() {
 	const platform = getPlatform();
 	const binDir = join(__dirname, "..", "vendor");
-	const binName = platform.startsWith("windows") ? "bx.exe" : "bx";
-	const binPath = join(binDir, platform, binName);
-
-	return binPath;
+	const binName = getBinaryName();
+	return join(binDir, platform, binName);
 }
 
-function main() {
-	const binaryPath = getBinaryPath();
+async function downloadBinary(platform, destPath) {
+	const binaryName = getBinaryName();
+	const packageJson = JSON.parse(
+		await import("node:fs").then((fs) =>
+			fs.readFileSync(join(__dirname, "..", "package.json"), "utf-8"),
+		),
+	);
+	const version = packageJson.version;
+	const url = `https://github.com/${GITHUB_REPO}/releases/download/v${version}/bx-${platform}${process.platform === "win32" ? ".exe" : ""}`;
 
-	// Check if binary exists
+	console.log(`📦 First time setup: Downloading BabelX CLI v${version}...`);
+	console.log(`   Platform: ${platform}`);
+
+	// Ensure directory exists
+	const dir = dirname(destPath);
+	if (!existsSync(dir)) {
+		mkdirSync(dir, { recursive: true });
+	}
+
+	return new Promise((resolve, reject) => {
+		const file = createWriteStream(destPath);
+		get(url, { followRedirects: true }, (response) => {
+			if (response.statusCode === 302 || response.statusCode === 301) {
+				get(response.headers.location, (res) => {
+					res.pipe(file);
+					file.on("finish", () => {
+						file.close();
+						resolve();
+					});
+				}).on("error", reject);
+			} else if (response.statusCode === 200) {
+				response.pipe(file);
+				file.on("finish", () => {
+					file.close();
+					resolve();
+				});
+			} else {
+				reject(
+					new Error(`HTTP ${response.statusCode}: ${response.statusMessage}`),
+				);
+			}
+		}).on("error", reject);
+	});
+}
+
+function makeExecutable(filePath) {
+	if (process.platform !== "win32") {
+		import("node:fs").then((fs) => fs.chmodSync(filePath, 0o755));
+	}
+}
+
+async function main() {
+	const binaryPath = getBinaryPath();
+	const platform = getPlatform();
+
+	// Download binary if it doesn't exist (lazy loading)
 	if (!existsSync(binaryPath)) {
-		console.error("BabelX CLI binary not found.");
-		console.error(`Expected path: ${binaryPath}`);
-		console.error("");
-		console.error("Please run: npm install @babelx/cli");
-		console.error("Or download the binary manually from GitHub releases.");
-		process.exit(1);
+		try {
+			await downloadBinary(platform, binaryPath);
+			makeExecutable(binaryPath);
+			console.log(`✅ BabelX CLI installed successfully!\n`);
+		} catch (error) {
+			console.error("❌ Failed to download BabelX CLI binary.");
+			console.error(`Error: ${error.message}`);
+			console.error("");
+			console.error("Please try:");
+			console.error("1. Check your internet connection");
+			console.error("2. Download manually from:");
+			console.error(`   https://github.com/${GITHUB_REPO}/releases`);
+			process.exit(1);
+		}
 	}
 
 	// Run the binary with all arguments

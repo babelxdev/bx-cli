@@ -1,23 +1,17 @@
 #!/usr/bin/env node
 /**
- * Post-install script for @babelx/cli
- * Downloads the appropriate binary for the current platform
+ * Post-install script for @babelx/cli (optional)
+ * Pre-downloads the binary during installation (if allowed)
+ * If this fails, the CLI will download lazily on first run
  */
 
-import {
-	chmodSync,
-	createWriteStream,
-	existsSync,
-	mkdirSync,
-	readFileSync,
-} from "node:fs";
+import { createWriteStream, existsSync, mkdirSync } from "node:fs";
 import { get } from "node:https";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const GITHUB_REPO = "babelxdev/bx-cli";
 
-// ES modules don't have __dirname
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
@@ -39,14 +33,7 @@ function getPlatform() {
 	const p = platformMap[platform];
 	const a = archMap[arch];
 
-	if (!p || !a) {
-		console.error(`❌ Unsupported platform: ${platform} ${arch}`);
-		console.error(
-			"Supported platforms: darwin-x64, darwin-arm64, linux-x64, linux-arm64, windows-x64",
-		);
-		process.exit(1);
-	}
-
+	if (!p || !a) return null;
 	return `${p}-${a}`;
 }
 
@@ -58,14 +45,10 @@ async function downloadBinary(version, platform, destPath) {
 	const binaryExt = process.platform === "win32" ? ".exe" : "";
 	const url = `https://github.com/${GITHUB_REPO}/releases/download/v${version}/bx-${platform}${binaryExt}`;
 
-	console.log(`📦 Downloading BabelX CLI v${version} for ${platform}...`);
-	console.log(`   URL: ${url}`);
-
 	return new Promise((resolve, reject) => {
 		const file = createWriteStream(destPath);
 		get(url, { followRedirects: true }, (response) => {
 			if (response.statusCode === 302 || response.statusCode === 301) {
-				// Handle redirect
 				get(response.headers.location, (res) => {
 					res.pipe(file);
 					file.on("finish", () => {
@@ -80,78 +63,47 @@ async function downloadBinary(version, platform, destPath) {
 					resolve();
 				});
 			} else {
-				reject(
-					new Error(`HTTP ${response.statusCode}: ${response.statusMessage}`),
-				);
+				reject(new Error(`HTTP ${response.statusCode}`));
 			}
 		}).on("error", reject);
 	});
 }
 
-function makeExecutable(filePath) {
-	if (process.platform !== "win32") {
-		chmodSync(filePath, 0o755);
-	}
-}
-
 async function main() {
-	// Skip in CI environment or if explicitly disabled
+	// Skip if CI, disabled, or not interactive
 	if (process.env.CI || process.env.SKIP_BABELX_BINARY) {
-		console.log("⏭️ Skipping binary download (CI environment)");
 		return;
 	}
 
 	try {
-		// Get package version
+		const platform = getPlatform();
+		if (!platform) return;
+
+		const { readFileSync } = await import("node:fs");
 		const packageJson = JSON.parse(
 			readFileSync(join(__dirname, "..", "package.json"), "utf-8"),
 		);
 		const version = packageJson.version;
-
-		const platform = getPlatform();
 		const binaryName = getBinaryName();
-
-		// Create vendor directory
 		const vendorDir = join(__dirname, "..", "vendor", platform);
+		const binaryPath = join(vendorDir, binaryName);
+
+		if (existsSync(binaryPath)) return;
+
 		if (!existsSync(vendorDir)) {
 			mkdirSync(vendorDir, { recursive: true });
 		}
 
-		const binaryPath = join(vendorDir, binaryName);
-
-		// Check if binary already exists
-		if (existsSync(binaryPath)) {
-			console.log(`✅ BabelX CLI binary already exists for ${platform}`);
-			return;
-		}
-
-		// Download binary
 		await downloadBinary(version, platform, binaryPath);
 
-		// Make executable (Unix only)
-		makeExecutable(binaryPath);
-
-		console.log(`✅ BabelX CLI v${version} installed successfully!`);
-		console.log(`   Binary: ${binaryPath}`);
-	} catch (error) {
-		// Don't fail installation if binary download fails (e.g., first release)
-		if (error.message.includes("404")) {
-			console.warn("⚠️ Binary not found for this version yet.");
-			console.warn("   The CLI will use the bundled JavaScript version.");
-			console.warn(
-				`   Check https://github.com/${GITHUB_REPO}/releases for updates.`,
-			);
-			return; // Don't fail installation
+		if (process.platform !== "win32") {
+			const { chmodSync } = await import("node:fs");
+			chmodSync(binaryPath, 0o755);
 		}
 
-		console.error("❌ Failed to install BabelX CLI binary:", error.message);
-		console.error("");
-		console.error("You can try:");
-		console.error("1. Check your internet connection");
-		console.error("2. Set SKIP_BABELX_BINARY=1 to skip binary download");
-		console.error("3. Install manually from GitHub releases:");
-		console.error(`   https://github.com/${GITHUB_REPO}/releases`);
-		// Don't exit with error - allow npm install to continue
+		console.log(`✅ BabelX CLI binary pre-downloaded for ${platform}`);
+	} catch {
+		// Silent fail - CLI will download on first run
 	}
 }
 
