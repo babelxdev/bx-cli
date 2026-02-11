@@ -1,6 +1,6 @@
 {
 	"name": "@babelx/cli",
-	"version": "0.1.0",
+	"version": "0.2.0",
 	"description": "BabelX CLI - AI-powered translation and i18n management tool",
 	"module": "index.ts",
 	"type": "module",
@@ -21,10 +21,12 @@
 		"localization"
 	],
 	"bin": {
-		"bx": "./dist/index.js"
+		"bx": "./bin/bx"
 	},
 	"files": [
-		"dist/",
+		"bin/",
+		"scripts/",
+		"vendor/",
 		"LICENSE",
 		"README.md"
 	],
@@ -56,7 +58,15 @@
 	},
 	"scripts": {
 		"dev": "bun run index.ts",
-		"build": "bun build index.ts --outdir dist --target node",
+		"build": "bun build index.ts --outdir dist --target bun",
+		"build:binary": "bun build index.ts --compile --outfile bx",
+		"build:binary:all": "npm run build:binary:win && npm run build:binary:linux && npm run build:binary:mac",
+		"build:binary:win": "bun build index.ts --compile --target=bun-windows-x64 --outfile dist/bx-win-x64.exe",
+		"build:binary:linux": "bun build index.ts --compile --target=bun-linux-x64 --outfile dist/bx-linux-x64",
+		"build:binary:linux-arm": "bun build index.ts --compile --target=bun-linux-arm64 --outfile dist/bx-linux-arm64",
+		"build:binary:mac": "bun build index.ts --compile --target=bun-darwin-x64 --outfile dist/bx-darwin-x64",
+		"build:binary:mac-arm": "bun build index.ts --compile --target=bun-darwin-arm64 --outfile dist/bx-darwin-arm64",
+		"postinstall": "node scripts/postinstall.js",
 		"lint:check": "bunx biome check --write --error-on-warnings && bunx tsc --noEmit",
 		"lint:fix": "biome check --write ."
 	}

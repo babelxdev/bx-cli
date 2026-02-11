@@ -6,6 +6,15 @@ out
 dist
 *.tgz
 
+# Binários baixados pelo postinstall (não commitar)
+vendor/
+
+# Binários compilados localmente
+bx.exe
+bx-linux*
+bx-darwin*
+bx-win*
+
 # code coverage
 coverage
 *.lcov

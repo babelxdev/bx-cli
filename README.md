@@ -12,20 +12,36 @@ Official CLI for BabelX - AI-powered translation and i18n management.
 
 ## Installation
 
+### Via npm (Recommended)
+
 ```bash
-# Install globally via npm
+# Install globally
 npm install -g @babelx/cli
 
-# Or use npx (no installation)
+# Or use npx (no installation required)
 npx @babelx/cli --version
-
-# Or install via bun
-bun install -g @babelx/cli
 ```
 
-### Requirements
+The npm package automatically downloads the correct binary for your platform during installation.
 
-- [Node.js](https://nodejs.org) >= 18.0.0 **or** [Bun](https://bun.sh) >= 1.0.0
+### Supported Platforms
+
+- **macOS** (Intel & Apple Silicon)
+- **Linux** (x64 & ARM64)
+- **Windows** (x64)
+
+### Manual Binary Download
+
+You can also download pre-built binaries from [GitHub Releases](https://github.com/babelxdev/bx-cli/releases):
+
+```bash
+# Download for your platform and add to PATH
+# Linux/macOS:
+chmod +x bx-linux-x64
+sudo mv bx-linux-x64 /usr/local/bin/bx
+
+# Windows: Add bx-windows-x64.exe to your PATH
+```
 
 ## Quick Start
 

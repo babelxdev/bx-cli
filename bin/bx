@@ -1,0 +1,76 @@
+#!/usr/bin/env node
+/**
+ * BabelX CLI - Binary wrapper
+ * Detects platform and runs the appropriate binary
+ */
+
+const { spawn } = require('child_process');
+const path = require('path');
+const fs = require('fs');
+const os = require('os');
+
+function getPlatform() {
+	const platform = os.platform();
+	const arch = os.arch();
+
+	const platformMap = {
+		'darwin': 'darwin',
+		'linux': 'linux',
+		'win32': 'windows'
+	};
+
+	const archMap = {
+		'x64': 'x64',
+		'arm64': 'arm64'
+	};
+
+	const p = platformMap[platform];
+	const a = archMap[arch];
+
+	if (!p || !a) {
+		console.error(`Unsupported platform: ${platform} ${arch}`);
+		process.exit(1);
+	}
+
+	return `${p}-${a}`;
+}
+
+function getBinaryPath() {
+	const platform = getPlatform();
+	const binDir = path.join(__dirname, '..', 'vendor');
+	const binName = platform.startsWith('windows') ? 'bx.exe' : 'bx';
+	const binPath = path.join(binDir, platform, binName);
+
+	return binPath;
+}
+
+function main() {
+	const binaryPath = getBinaryPath();
+
+	// Check if binary exists
+	if (!fs.existsSync(binaryPath)) {
+		console.error('BabelX CLI binary not found.');
+		console.error(`Expected path: ${binaryPath}`);
+		console.error('');
+		console.error('Please run: npm install @babelx/cli');
+		console.error('Or download the binary manually from GitHub releases.');
+		process.exit(1);
+	}
+
+	// Run the binary with all arguments
+	const child = spawn(binaryPath, process.argv.slice(2), {
+		stdio: 'inherit',
+		windowsHide: true
+	});
+
+	child.on('error', (err) => {
+		console.error('Failed to start BabelX CLI:', err.message);
+		process.exit(1);
+	});
+
+	child.on('exit', (code) => {
+		process.exit(code || 0);
+	});
+}
+
+main();

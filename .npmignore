@@ -12,8 +12,9 @@
 .idea/
 *.code-workspace
 
-# Scripts de desenvolvimento e release
-scripts/
+# Scripts de desenvolvimento (mantém postinstall.js para npm)
+scripts/*.sh
+scripts/release*
 
 # Código fonte (não é necessário no pacote publicado)
 src/
@@ -74,3 +75,6 @@ node_modules/
 .tmp/
 temp/
 tmp/
+
+# Nota: vendor/ é INTENCIONALMENTE não ignorado
+# O postinstall.js baixa binários para cá após instalação
