@@ -29,12 +29,6 @@ jobs:
       - name: Build
         run: bun run build
 
-      - name: Upload build artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: dist
-          path: dist/
-
   # Job 2: Testar CLI
   test:
     runs-on: ubuntu-latest
@@ -51,18 +45,11 @@ jobs:
       - name: Install dependencies
         run: bun install
 
-      - name: Download build
-        uses: actions/download-artifact@v4
-        with:
-          name: dist
-          path: dist/
-
       - name: Test CLI commands
         run: |
-          chmod +x dist/index.js
-          ./dist/index.js --version
-          ./dist/index.js --help
-          ./dist/index.js init --help
+          bun run index.ts --version
+          bun run index.ts --help
+          bun run index.ts init --help
 
   # Job 3: Publicar no npm (quando push para main)
   publish-npm:
@@ -71,6 +58,9 @@ jobs:
     if: github.ref == 'refs/heads/main' && github.event_name == 'push'
     permissions:
       id-token: write  # Required for OIDC trusted publishing
+    outputs:
+      version_changed: ${{ steps.version-check.outputs.changed }}
+      current_version: ${{ steps.version-check.outputs.current }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -126,23 +116,13 @@ jobs:
   # Job 4: Build Binários para todas as plataformas
   build-binaries:
     runs-on: ubuntu-latest
-    needs: [publish-npm]
+    needs: [lint-and-build, test]
     if: github.ref == 'refs/heads/main' && github.event_name == 'push'
     permissions:
       contents: write
-    strategy:
-      matrix:
-        include:
-          - target: bun-windows-x64
-            name: bx-windows-x64.exe
-          - target: bun-linux-x64
-            name: bx-linux-x64
-          - target: bun-linux-arm64
-            name: bx-linux-arm64
-          - target: bun-darwin-x64
-            name: bx-darwin-x64
-          - target: bun-darwin-arm64
-            name: bx-darwin-arm64
+    outputs:
+      version_changed: ${{ steps.version-check.outputs.changed }}
+      current_version: ${{ steps.version-check.outputs.current }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -152,21 +132,41 @@ jobs:
         with:
           bun-version: latest
 
-      - name: Build binary for ${{ matrix.target }}
+      - name: Check if version changed
+        id: version-check
         run: |
-          bun build index.ts --compile --target=${{ matrix.target }} --outfile ${{ matrix.name }}
+          CURRENT_VERSION=$(node -p "require('./package.json').version")
+          PUBLISHED_VERSION=$(npm view @babelx/cli version 2>/dev/null || echo "0.0.0")
+          echo "current=$CURRENT_VERSION" >> $GITHUB_OUTPUT
+          if [ "$CURRENT_VERSION" != "$PUBLISHED_VERSION" ]; then
+            echo "changed=true" >> $GITHUB_OUTPUT
+            echo "✅ Nova versão detectada: $PUBLISHED_VERSION → $CURRENT_VERSION"
+          else
+            echo "changed=false" >> $GITHUB_OUTPUT
+            echo "⏭️ Versão já publicada: $CURRENT_VERSION"
+          fi
 
-      - name: Upload binary artifact
+      - name: Build all binaries
+        if: steps.version-check.outputs.changed == 'true'
+        run: |
+          bun build index.ts --compile --target=bun-windows-x64 --outfile bx-windows-x64.exe
+          bun build index.ts --compile --target=bun-linux-x64 --outfile bx-linux-x64
+          bun build index.ts --compile --target=bun-linux-arm64 --outfile bx-linux-arm64
+          bun build index.ts --compile --target=bun-darwin-x64 --outfile bx-darwin-x64
+          bun build index.ts --compile --target=bun-darwin-arm64 --outfile bx-darwin-arm64
+
+      - name: Upload binary artifacts
+        if: steps.version-check.outputs.changed == 'true'
         uses: actions/upload-artifact@v4
         with:
           name: binaries
-          path: ${{ matrix.name }}
+          path: bx-*
 
   # Job 5: Criar Release no GitHub com binários
   create-release:
     runs-on: ubuntu-latest
     needs: [publish-npm, build-binaries]
-    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push' && needs.build-binaries.outputs.version_changed == 'true'
     permissions:
       contents: write
     steps:
@@ -181,22 +181,9 @@ jobs:
           name: binaries
           path: binaries/
 
-      - name: Check if version changed
-        id: version-check
-        run: |
-          CURRENT_VERSION=$(node -p "require('./package.json').version")
-          PUBLISHED_VERSION=$(npm view @babelx/cli version 2>/dev/null || echo "0.0.0")
-          if [ "$CURRENT_VERSION" != "$PUBLISHED_VERSION" ]; then
-            echo "changed=true" >> $GITHUB_OUTPUT
-            echo "current=$CURRENT_VERSION" >> $GITHUB_OUTPUT
-          else
-            echo "changed=false" >> $GITHUB_OUTPUT
-          fi
-
       - name: Wait for tag
-        if: steps.version-check.outputs.changed == 'true'
         run: |
-          VERSION=$(node -p "require('./package.json').version")
+          VERSION="${{ needs.build-binaries.outputs.current_version }}"
           for i in {1..10}; do
             git fetch --tags
             if git rev-parse "v$VERSION" >/dev/null 2>&1; then
@@ -208,10 +195,9 @@ jobs:
           done
 
       - name: Create Release
-        if: steps.version-check.outputs.changed == 'true'
         uses: softprops/action-gh-release@v1
         with:
-          tag_name: v${{ steps.version-check.outputs.current }}
+          tag_name: v${{ needs.build-binaries.outputs.current_version }}
           files: binaries/*
           generate_release_notes: true
         env:
