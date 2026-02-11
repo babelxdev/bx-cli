@@ -95,6 +95,12 @@ function makeExecutable(filePath) {
 }
 
 async function main() {
+	// Skip in CI environment or if explicitly disabled
+	if (process.env.CI || process.env.SKIP_BABELX_BINARY) {
+		console.log("⏭️ Skipping binary download (CI environment)");
+		return;
+	}
+
 	try {
 		// Get package version
 		const packageJson = JSON.parse(
@@ -128,13 +134,24 @@ async function main() {
 		console.log(`✅ BabelX CLI v${version} installed successfully!`);
 		console.log(`   Binary: ${binaryPath}`);
 	} catch (error) {
+		// Don't fail installation if binary download fails (e.g., first release)
+		if (error.message.includes("404")) {
+			console.warn("⚠️ Binary not found for this version yet.");
+			console.warn("   The CLI will use the bundled JavaScript version.");
+			console.warn(
+				`   Check https://github.com/${GITHUB_REPO}/releases for updates.`,
+			);
+			return; // Don't fail installation
+		}
+
 		console.error("❌ Failed to install BabelX CLI binary:", error.message);
 		console.error("");
 		console.error("You can try:");
 		console.error("1. Check your internet connection");
-		console.error("2. Install manually from GitHub releases:");
+		console.error("2. Set SKIP_BABELX_BINARY=1 to skip binary download");
+		console.error("3. Install manually from GitHub releases:");
 		console.error(`   https://github.com/${GITHUB_REPO}/releases`);
-		process.exit(1);
+		// Don't exit with error - allow npm install to continue
 	}
 }
 
