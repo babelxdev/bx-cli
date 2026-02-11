@@ -5,7 +5,7 @@
  */
 
 import { spawn } from "node:child_process";
-import { createWriteStream, existsSync, mkdirSync } from "node:fs";
+import { createWriteStream, existsSync, mkdirSync, readFileSync, writeFileSync, unlinkSync } from "node:fs";
 import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 import { platform as getPlatformName, arch as getArch } from "node:os";
@@ -51,6 +51,53 @@ function getBinaryPath() {
 	const binDir = join(__dirname, "..", "vendor");
 	const binName = getBinaryName();
 	return join(binDir, platform, binName);
+}
+
+function getVersionFilePath() {
+	const platform = getPlatform();
+	const binDir = join(__dirname, "..", "vendor");
+	return join(binDir, platform, ".version");
+}
+
+function getPackageVersion() {
+	try {
+		const packageJson = JSON.parse(
+			readFileSync(join(__dirname, "..", "package.json"), "utf-8"),
+		);
+		return packageJson.version;
+	} catch {
+		return null;
+	}
+}
+
+function getBinaryVersion() {
+	try {
+		return readFileSync(getVersionFilePath(), "utf-8").trim();
+	} catch {
+		return null;
+	}
+}
+
+function saveBinaryVersion(version) {
+	try {
+		writeFileSync(getVersionFilePath(), version);
+	} catch {
+		// Ignore write errors
+	}
+}
+
+function removeOldBinary(binaryPath) {
+	try {
+		if (existsSync(binaryPath)) {
+			unlinkSync(binaryPath);
+		}
+		const versionFile = getVersionFilePath();
+		if (existsSync(versionFile)) {
+			unlinkSync(versionFile);
+		}
+	} catch {
+		// Ignore errors
+	}
 }
 
 async function downloadBinary(platform, destPath) {
@@ -137,12 +184,23 @@ function makeExecutable(filePath) {
 async function main() {
 	const binaryPath = getBinaryPath();
 	const platform = getPlatform();
+	const packageVersion = getPackageVersion();
+	const binaryVersion = getBinaryVersion();
 
-	// Download binary if it doesn't exist (lazy loading)
-	if (!existsSync(binaryPath)) {
+	// Check if binary needs update (new version or doesn't exist)
+	const needsDownload = !existsSync(binaryPath) || !binaryVersion || binaryVersion !== packageVersion;
+
+	if (needsDownload && packageVersion) {
+		// Remove old binary if exists
+		if (binaryVersion && binaryVersion !== packageVersion) {
+			console.log(`📦 Updating BabelX CLI: v${binaryVersion} → v${packageVersion}`);
+			removeOldBinary(binaryPath);
+		}
+
 		try {
 			await downloadBinary(platform, binaryPath);
 			makeExecutable(binaryPath);
+			saveBinaryVersion(packageVersion);
 			console.log(`✅ BabelX CLI installed successfully!\n`);
 		} catch (error) {
 			console.error("❌ Failed to download BabelX CLI binary.");
