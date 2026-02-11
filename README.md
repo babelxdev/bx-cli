@@ -13,10 +13,19 @@ Official CLI for BabelX - AI-powered translation and i18n management.
 ## Installation
 
 ```bash
+# Install globally via npm
 npm install -g @babelx/cli
-# or
+
+# Or use npx (no installation)
+npx @babelx/cli --version
+
+# Or install via bun
 bun install -g @babelx/cli
 ```
+
+### Requirements
+
+- [Node.js](https://nodejs.org) >= 18.0.0 **or** [Bun](https://bun.sh) >= 1.0.0
 
 ## Quick Start
 

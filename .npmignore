@@ -1,0 +1,76 @@
+# Arquivos de ambiente (crítico - contém dados sensíveis)
+.env
+.env.*
+.env.local
+.env.development
+.env.test
+.env.production
+
+# Arquivos de configuração de desenvolvimento
+.github/
+.vscode/
+.idea/
+*.code-workspace
+
+# Scripts de desenvolvimento e release
+scripts/
+
+# Código fonte (não é necessário no pacote publicado)
+src/
+*.ts
+*.tsx
+
+# Configurações de build/lint/type-check
+biome.json
+tsconfig.json
+tsconfig.*.json
+
+# Arquivos de teste
+tests/
+test/
+__tests__/
+*.test.ts
+*.test.tsx
+*.spec.ts
+*.spec.tsx
+coverage/
+.nyc_output/
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+lerna-debug.log*
+.pnpm-debug.log*
+
+# Cache
+.cache/
+*.tsbuildinfo
+.eslintcache
+
+# Documentação de desenvolvimento (mantém apenas README.md)
+RELEASE.md
+CONTRIBUTING.md
+CHANGELOG.md
+
+# Outros arquivos de desenvolvimento
+.gitattributes
+.editorconfig
+.prettierrc
+.prettierignore
+.eslintrc
+.eslintrc.*
+
+# Arquivos de sistema
+.DS_Store
+Thumbs.db
+
+# Dependências (não devem ser incluídas, são instaladas pelo npm install)
+node_modules/
+
+# Diretórios de build temporários
+.tmp/
+temp/
+tmp/

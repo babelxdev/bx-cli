@@ -29,7 +29,6 @@
 		"README.md"
 	],
 	"engines": {
-		"bun": ">=1.0.0",
 		"node": ">=18.0.0"
 	},
 	"devDependencies": {
@@ -57,7 +56,7 @@
 	},
 	"scripts": {
 		"dev": "bun run index.ts",
-		"build": "bun build index.ts --outdir dist --target bun",
+		"build": "bun build index.ts --outdir dist --target node",
 		"lint:check": "bunx biome check --write --error-on-warnings && bunx tsc --noEmit",
 		"lint:fix": "biome check --write ."
 	}
