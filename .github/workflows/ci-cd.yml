@@ -57,7 +57,8 @@ jobs:
     needs: [lint-and-build, test]
     if: github.ref == 'refs/heads/main' && github.event_name == 'push'
     permissions:
-      id-token: write  # Required for OIDC trusted publishing
+      contents: read    # Required to checkout private repository
+      id-token: write   # Required for OIDC trusted publishing
     outputs:
       version_changed: ${{ steps.version-check.outputs.changed }}
       current_version: ${{ steps.version-check.outputs.current }}
