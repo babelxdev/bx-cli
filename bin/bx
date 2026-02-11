@@ -63,8 +63,9 @@ async function downloadBinary(platform, destPath) {
 	const version = packageJson.version;
 	const url = `https://github.com/${GITHUB_REPO}/releases/download/v${version}/bx-${platform}${process.platform === "win32" ? ".exe" : ""}`;
 
-	console.log(`📦 First time setup: Downloading BabelX CLI v${version}...`);
+	console.log(`📦 First time setup: Downloading BabelX CLI v${version}`);
 	console.log(`   Platform: ${platform}`);
+	console.log("");
 
 	// Ensure directory exists
 	const dir = dirname(destPath);
@@ -74,21 +75,50 @@ async function downloadBinary(platform, destPath) {
 
 	return new Promise((resolve, reject) => {
 		const file = createWriteStream(destPath);
+		let downloaded = 0;
+		let total = 0;
+		let lastPercent = -1;
+
+		function formatBytes(bytes) {
+			if (bytes === 0) return "0 B";
+			const k = 1024;
+			const sizes = ["B", "KB", "MB", "GB"];
+			const i = Math.floor(Math.log(bytes) / Math.log(k));
+			return `${(bytes / k ** i).toFixed(1)} ${sizes[i]}`;
+		}
+
+		function updateProgress() {
+			if (total === 0) return;
+			const percent = Math.floor((downloaded / total) * 100);
+			if (percent !== lastPercent && percent % 5 === 0) {
+				const bar = "█".repeat(Math.floor(percent / 5)) + "░".repeat(20 - Math.floor(percent / 5));
+				process.stdout.write(`\r   ${bar} ${percent}% (${formatBytes(downloaded)} / ${formatBytes(total)})`);
+				lastPercent = percent;
+			}
+		}
+
+		function handleResponse(response) {
+			total = parseInt(response.headers["content-length"] || "0", 10);
+
+			response.on("data", (chunk) => {
+				downloaded += chunk.length;
+				updateProgress();
+			});
+
+			response.pipe(file);
+
+			file.on("finish", () => {
+				process.stdout.write("\n");
+				file.close();
+				resolve();
+			});
+		}
+
 		get(url, { followRedirects: true }, (response) => {
 			if (response.statusCode === 302 || response.statusCode === 301) {
-				get(response.headers.location, (res) => {
-					res.pipe(file);
-					file.on("finish", () => {
-						file.close();
-						resolve();
-					});
-				}).on("error", reject);
+				get(response.headers.location, handleResponse).on("error", reject);
 			} else if (response.statusCode === 200) {
-				response.pipe(file);
-				file.on("finish", () => {
-					file.close();
-					resolve();
-				});
+				handleResponse(response);
 			} else {
 				reject(
 					new Error(`HTTP ${response.statusCode}: ${response.statusMessage}`),

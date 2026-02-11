@@ -1,6 +1,6 @@
 {
 	"name": "@babelx/cli",
-	"version": "0.2.2",
+	"version": "0.2.3",
 	"description": "BabelX CLI - AI-powered translation and i18n management tool",
 	"module": "index.ts",
 	"type": "module",
