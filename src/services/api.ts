@@ -36,8 +36,20 @@ export class BabelXApi {
 	async getLanguages(): Promise<
 		Array<{ code: string; name: string; nativeName?: string }>
 	> {
-		const response = await this.client.get("/languages");
-		return response.data;
+		const response = await this.client.get("/translate/languages");
+		const data = response.data as {
+			languages: Array<{
+				language: string;
+				base_code: string;
+				variants: string[];
+				total_variants: number;
+			}>;
+			total: number;
+		};
+		return data.languages.map((lang) => ({
+			code: lang.base_code,
+			name: lang.language,
+		}));
 	}
 
 	// Projects
@@ -102,7 +114,11 @@ export class BabelXApi {
 	}
 
 	// Credits
-	async getBalance(): Promise<{ credits: number; currency: string }> {
+	async getBalance(): Promise<{
+		balance: number;
+		totalPurchased: number;
+		totalConsumed: number;
+	}> {
 		const response = await this.client.get("/credits/balance");
 		return response.data;
 	}
