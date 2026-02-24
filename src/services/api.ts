@@ -15,7 +15,11 @@ export class BabelXApi {
 
 	static async create(): Promise<BabelXApi> {
 		const config = await loadConfig();
-		return new BabelXApi({ apiUrl: config.apiUrl });
+		const api = new BabelXApi({ apiUrl: config.apiUrl });
+		if (config.apiKey) {
+			api.setApiKey(config.apiKey);
+		}
+		return api;
 	}
 
 	setApiKey(apiKey: string): void {
